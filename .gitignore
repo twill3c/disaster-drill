@@ -24,3 +24,5 @@ shots/
 # Python
 __pycache__/
 *.pyc
+
+.env*

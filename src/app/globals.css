@@ -123,10 +123,14 @@ a {
 
 /* ---------------------------------------------------------------- ボタン */
 
+/* `.btn` は `<button>` にも `<a>` にも付く。**`a` の既定の下線を消す** ——
+   ボタンに見せておいて下線が出ていると、押せるものが二種類あるように読める
+   (本番の画面を見てだけ見つかった。loop_001) */
 .btn {
   display: block;
   width: 100%;
   text-align: left;
+  text-decoration: none;
   background: var(--panel-2);
   color: var(--fg);
   border: 1px solid var(--line);
@@ -497,6 +501,11 @@ a {
   text-align: left;
   padding: 0.35rem 0.5rem;
   border-bottom: 1px solid var(--line);
+}
+
+/* 見出しは折り返さない。狭い幅で「モード」が「モー / ド」に割れる(HC-078) */
+.table thead th {
+  white-space: nowrap;
 }
 
 .table td.num {

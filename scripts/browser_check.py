@@ -31,20 +31,36 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 WEB = ROOT / "out"
 
-# 静的エクスポートの出力は `out/<route>.html`(実測 2026-09-07)。
-# `?scenario=` 付きの経路も入れてあるのは、**訓練画面の中身がクエリで決まる**ため ——
-# 素の `play.html` を開いても待機表示しか出ず、図もボタンも測れない。
-PAGES = (
-    "index.html",
-    "scenarios.html",
-    "records.html",
-    "result.html",
-    "play.html?scenario=EQ01",
-    "play.html?scenario=FI01",
-    "play.html?scenario=FL01",
-    "play.html?scenario=TS01",
-    "play.html?scenario=LS01",
+# **経路は配り方で変わる。**手元では `out/<route>.html` を直接配るが、
+# Vercel は同じ木をクリーン URL(`/play`)で配り、`/play.html` は 404 を返す
+# (実測 2026-09-07: `/play` → 200 / `/play.html` → 404)。
+# だからルート名だけを持ち、経路は `page_url()` で組み立てる。
+#
+# `?scenario=` 付きを入れてあるのは、**訓練画面の中身がクエリで決まる**ため ——
+# 素の `/play` を開いても待機表示しか出ず、図もボタンも測れない。
+ROUTES = (
+    ("", None),
+    ("scenarios", None),
+    ("records", None),
+    ("result", None),
+    ("play", "scenario=EQ01"),
+    ("play", "scenario=FI01"),
+    ("play", "scenario=FL01"),
+    ("play", "scenario=TS01"),
+    ("play", "scenario=LS01"),
 )
+
+
+def page_url(route: str, query: str | None, hosted: bool) -> str:
+    """検品する経路。`hosted` なら配信側の規則(クリーン URL)に合わせる。"""
+    if hosted:
+        path = f"/{route}" if route else "/"
+    else:
+        path = f"/{route}.html" if route else "/index.html"
+    return f"{path}?{query}" if query else path
+
+
+PAGES = tuple(page_url(r, q, hosted=False) for r, q in ROUTES)
 
 VIEWPORTS = (("wide", 1280, 900), ("narrow", 390, 780))
 
@@ -104,12 +120,42 @@ SVG_JS = """
 """
 
 # 図が在るべき画面。**ここが 0 なら検査ではなく画面のほうが壊れている**
-PAGES_WITH_FIGURES = ("scenarios.html", "play.html")
+PAGES_WITH_FIGURES = ("/scenarios", "/play")
 
 # **棒が在るべき画面。**状態パネルは訓練を開始しないと出ないので、
 # 訓練画面では実際に「訓練を始める」を押してから測る(下の `_advance`)。
 # 押さずに測ると `棒 0 本` になり、検査は永遠に緑を返す —— loop_001 で一度そうなった。
-PAGES_WITH_BARS = ("play.html",)
+PAGES_WITH_BARS = ("/play",)
+
+# **ボタンに見えるものが下線を持たないこと**と、**表の見出しが折り返さないこと**。
+# どちらも「要素が在るか」の検査は緑のまま通り、本番の画面を見てだけ見つかった(loop_001)。
+# 見出しの折り返しは、実測の高さが 1 行ぶんの 1.6 倍を超えたことで判定する。
+POLISH_JS = """
+() => {
+  const bad = [];
+  let buttons = 0, heads = 0;
+  for (const el of document.querySelectorAll('a.btn, a.card')) {
+    buttons++;
+    const cs = getComputedStyle(el);
+    if (!cs.textDecorationLine.includes('none')) {
+      bad.push({ kind: 'ボタンに下線', text: (el.textContent || '').slice(0, 20),
+                 detail: cs.textDecorationLine });
+    }
+  }
+  for (const th of document.querySelectorAll('table thead th')) {
+    heads++;
+    const cs = getComputedStyle(th);
+    const line = parseFloat(cs.lineHeight) || parseFloat(cs.fontSize) * 1.7;
+    const inner = th.getBoundingClientRect().height
+      - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+    if (inner > line * 1.6) {
+      bad.push({ kind: '見出しが折り返す', text: (th.textContent || '').slice(0, 20),
+                 detail: `${Math.round(inner)}px / 1行 ${Math.round(line)}px` });
+    }
+  }
+  return { buttons, heads, bad };
+}
+"""
 
 # **見えない棒を見つける。**`height` を与えた要素がインラインのままだと、
 # 高さは行送りで決まり、指定した太さの帯は一本も描かれない。単体テストも
@@ -180,7 +226,7 @@ def _advance(page, page_name: str) -> str:
     **押せなかったことを黙って通さない。**「操作したが変化なし」と
     「操作が届いていない」は、結果の見た目では区別できない(HC-138)。
     """
-    if not page_name.startswith("play.html"):
+    if not page_name.startswith("/play"):
         return "n/a"
     btn = page.get_by_role("button", name="訓練を始める")
     if btn.count() == 0:
@@ -200,6 +246,10 @@ def check(
     from playwright.sync_api import sync_playwright
 
     results: list[dict] = []
+    hosted = base_url is not None
+    if pages is PAGES:
+        # 既定の一覧は配り方に合わせて組み直す(明示で渡されたものはそのまま使う)
+        pages = tuple(page_url(r, q, hosted) for r, q in ROUTES)
     with _base_url(base_url) as base, sync_playwright() as p:
         browser = p.chromium.launch()
         for name, width, height in VIEWPORTS:
@@ -212,12 +262,13 @@ def check(
                 page.on("pageerror", lambda e: errors.append(f"pageerror: {e}"))
                 page.on("requestfailed",
                         lambda r: errors.append(f"requestfailed: {r.url} {r.failure}"))
-                page.goto(f"{base}/{page_name}", wait_until="networkidle")
+                page.goto(f"{base}{page_name}" if page_name.startswith("/") else f"{base}/{page_name}", wait_until="networkidle")
                 page.wait_for_timeout(400)
                 advanced = _advance(page, page_name)
                 overflow = page.evaluate(OVERFLOW_JS)
                 svg = page.evaluate(SVG_JS)
                 bars = page.evaluate(BARS_JS)
+                polish = page.evaluate(POLISH_JS)
                 title = page.title()
                 if shot_dir is not None:
                     shot_dir.mkdir(parents=True, exist_ok=True)
@@ -238,6 +289,8 @@ def check(
                         "bars_seen": bars["seen"],
                         "bars_flat": bars["flat"],
                         "advanced": advanced,
+                        "polish": polish["bad"],
+                        "polish_seen": polish["buttons"] + polish["heads"],
                     }
                 )
                 page.close()
@@ -267,6 +320,7 @@ def summarise(results: list[dict]) -> tuple[str, bool]:
             or bool(flat_bars)
             or bar_blind
             or not_advanced
+            or bool(r["polish"])
         )
         ok = ok and not bad
         flag = "NG" if bad else "ok"
@@ -275,8 +329,11 @@ def summarise(results: list[dict]) -> tuple[str, bool]:
             f"scroll {o['scrollWidth']}/{o['clientWidth']}  "
             f"err {len(r['errors'])}  はみ出し {len(o['over'])}  "
             f"図 {r['svgs']}枚/{r['svg_scanned']}要素 溢れ {len(r['svg_out_of_viewbox'])}  "
-            f"棒 {r['bars_seen']}本/潰れ {len(flat_bars)}"
+            f"棒 {r['bars_seen']}本/潰れ {len(flat_bars)}  "
+            f"体裁 {r['polish_seen']}件/難 {len(r['polish'])}"
         )
+        for x in r["polish"][:4]:
+            lines.append(f"        ~ {x['kind']}: {x['text']!r} {x['detail']}")
         for x in flat_bars[:4]:
             lines.append(
                 f"        = 棒の高さが効いていない .{x['cls']} "
