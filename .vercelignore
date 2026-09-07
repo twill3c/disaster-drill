@@ -1,0 +1,12 @@
+node_modules
+.next
+.loop
+logs
+coverage
+tests
+scripts
+harness
+schema
+.wt
+.scaffold
+*.png
