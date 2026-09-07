@@ -52,6 +52,20 @@ python scripts/prose_check.py   # 日本語本文の字種・制御文字・英�
 **日本語の文中に単独で現れた ASCII 語**を出す。字種検査は別字種と制御文字しか見ないので、
 `water` のような正当な文字で書かれた誤りを通してしまう(開発中に実際に踏んだ)。
 
+## 公開
+
+本番: https://disaster-drill.vercel.app
+リポジトリ: https://github.com/twill3c/disaster-drill
+
+```
+python scripts/browser_check.py                                  # 手元の out/ を検品
+python scripts/browser_check.py --base https://disaster-drill.vercel.app   # 本番を検品
+```
+
+**経路は配り方で変わる。** 手元では `out/play.html`、Vercel はクリーン URL の `/play`
+で配り `/play.html` は 404 を返す(実測 2026-09-07)。検品器はルート名だけを持ち、
+経路を配り方から組み立てる。
+
 ## 技術構成
 
 ```
