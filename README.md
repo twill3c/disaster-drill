@@ -57,6 +57,13 @@ python scripts/prose_check.py   # 日本語本文の字種・制御文字・英�
 本番: https://disaster-drill.vercel.app
 リポジトリ: https://github.com/twill3c/disaster-drill
 
+解説は 2 本ある。フッタからも開ける。
+
+- [防災訓練の受け方](https://claude.ai/code/artifact/de1b25bd-e554-49b1-9bbe-cc8b519239b6)
+  — 五つの手順、危険度の見方、三つのモード、この訓練でできないこと
+- [防災訓練 設計図](https://claude.ai/code/artifact/91e2c660-4f72-4c6b-beda-8e3a91d6661d)
+  — 場面のグラフ、主張を守る不変量、検査が全部緑のまま通った故障
+
 ```
 python scripts/browser_check.py                                  # 手元の out/ を検品
 python scripts/browser_check.py --base https://disaster-drill.vercel.app   # 本番を検品

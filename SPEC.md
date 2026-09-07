@@ -44,7 +44,7 @@
 | F-18 | ランダムイベント: Challenge では `random.ts` のシード付き PRNG で、イベントの `variants` から一つを選ぶ。シードは画面に出し、指定して再挑戦できる(元仕様 §26) | should |
 | F-19 | 自己ベスト: 災害別の最高点とランクの一覧(元仕様 §28) | should |
 | F-20 | 開発ハーネス: `npm run verify`(typecheck + lint + test + build)green が全ループの完了条件 | must |
-| F-21 | フッタ: フリート統一書式(「MIT License © 2026 坂田哲朗 ・ GitHub ・ 歩き方 ・ 設計図 ・ App Menu」・`position: fixed; bottom: 0`・区切りの「・」は文字として置く) | must |
+| F-21 | フッタ: フリート統一書式(「MIT License © 2026 坂田哲朗 ・ GitHub ・ 受け方 ・ 設計図 ・ App Menu」・`position: fixed; bottom: 0`・区切りの「・」は文字として置く)。**3・4 番目は各アプリ固有の解説ページを指す**(このアプリでは「防災訓練の受け方」「防災訓練 設計図」の 2 本のアーティファクト) | must |
 | F-22 | チュートリアル: 初回起動時のみ 5 ステップの手順を表示。既読は F-10 の設定に保存(元仕様 §40) | should |
 
 ## 3. 非機能要求
