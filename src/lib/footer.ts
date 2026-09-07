@@ -22,8 +22,14 @@ export interface FooterItem {
 export const FOOTER_ITEMS: readonly FooterItem[] = [
   { label: "MIT License", href: `${REPO}/blob/main/LICENSE` },
   { label: "GitHub", href: REPO },
-  { label: "防災訓練の受け方", href: REPO },
-  { label: "防災訓練 設計図", href: `${REPO}/blob/main/SPEC.md` },
+  {
+    label: "防災訓練の受け方",
+    href: "https://claude.ai/code/artifact/de1b25bd-e554-49b1-9bbe-cc8b519239b6",
+  },
+  {
+    label: "防災訓練 設計図",
+    href: "https://claude.ai/code/artifact/91e2c660-4f72-4c6b-beda-8e3a91d6661d",
+  },
   { label: "App Menu", href: "https://app-menu-amber.vercel.app" },
 ];
 

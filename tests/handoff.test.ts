@@ -127,4 +127,16 @@ describe("T-071 フッタ規約(F-21 / G-10)", () => {
     expect(FOOTER_ITEMS[1].href).toBe(REPO);
     expect(FOOTER_ITEMS[0].href).toContain("LICENSE");
   });
+
+  it("3・4 番目は説明ページを指し、リポジトリの使い回しではない", () => {
+    // 規約の 3・4 番目は各アプリ固有の解説ページである。作りかけの段階では
+    // リポジトリを仮に指しておきがちで、そのまま出荷される
+    // (loop_002 で実際にそうなっていた)。**別々の遷移先であること**まで見る。
+    const [walk, plan] = [FOOTER_ITEMS[2], FOOTER_ITEMS[3]];
+    for (const i of [walk, plan]) {
+      expect(i.href, `${i.label} がリポジトリのまま`).not.toBe(REPO);
+      expect(i.href.startsWith(REPO), `${i.label} がリポジトリ配下`).toBe(false);
+    }
+    expect(walk.href).not.toBe(plan.href);
+  });
 });
